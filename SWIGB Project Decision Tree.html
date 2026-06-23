@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWIGB Project Decision Tree</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --primary: #1a3a5c;
+    --primary-light: #2a5a8c;
+    --accent: #c8a951;
+    --green: #2e7d32;
+    --green-bg: #e8f5e9;
+    --amber: #f57f17;
+    --amber-bg: #fff8e1;
+    --red: #c62828;
+    --red-bg: #ffebee;
+    --gray-50: #fafafa;
+    --gray-100: #f5f5f5;
+    --gray-200: #eeeeee;
+    --gray-300: #e0e0e0;
+    --gray-500: #9e9e9e;
+    --gray-700: #616161;
+    --gray-900: #212121;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 32px 24px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: 0.5px; }
+  .header .subtitle { color: var(--accent); font-size: 0.95rem; margin-top: 6px; font-weight: 500; }
+  .header .meta { font-size: 0.8rem; opacity: 0.7; margin-top: 8px; }
+  .header .confidential {
+    display: inline-block; background: rgba(200,169,81,0.2); border: 1px solid var(--accent);
+    color: var(--accent); font-size: 0.7rem; padding: 2px 10px; border-radius: 12px;
+    margin-top: 10px; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* Navigation / Stepper */
+  .stepper {
+    display: flex; justify-content: center; gap: 0; padding: 0 16px;
+    background: white; border-bottom: 1px solid var(--gray-300);
+    overflow-x: auto; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .step-btn {
+    padding: 14px 18px; border: none; background: none; cursor: pointer;
+    font-size: 0.82rem; font-weight: 500; color: var(--gray-500);
+    border-bottom: 3px solid transparent; transition: all 0.2s;
+    white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  }
+  .step-btn:hover { color: var(--primary); background: var(--gray-50); }
+  .step-btn.active { color: var(--primary); border-bottom-color: var(--accent); font-weight: 600; }
+  .step-btn .step-num {
+    width: 22px; height: 22px; border-radius: 50%; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 0.7rem;
+    background: var(--gray-200); color: var(--gray-700); font-weight: 700;
+  }
+  .step-btn.active .step-num { background: var(--accent); color: var(--primary); }
+  .step-btn.completed .step-num { background: var(--green); color: white; }
+  .step-btn.failed .step-num { background: var(--red); color: white; }
+
+  /* Main container */
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* Sections */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 28px; margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 1.15rem; color: var(--primary); margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 2px solid var(--gray-200);
+  }
+  .card h3 { font-size: 0.95rem; color: var(--primary-light); margin: 16px 0 8px; }
+  .card p { font-size: 0.9rem; color: var(--gray-700); margin-bottom: 12px; }
+
+  /* Callout boxes */
+  .callout {
+    background: var(--gray-50); border-left: 4px solid var(--accent);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.88rem; color: var(--gray-700); line-height: 1.7;
+  }
+  .callout strong { color: var(--primary); }
+
+  /* Project name input */
+  .project-input {
+    width: 100%; padding: 14px 18px; font-size: 1.1rem; border: 2px solid var(--gray-300);
+    border-radius: var(--radius); outline: none; transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .project-input:focus { border-color: var(--primary-light); }
+
+  /* Gate cards */
+  .gate-card {
+    border: 2px solid var(--gray-200); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; transition: all 0.3s;
+  }
+  .gate-card.pass { border-color: var(--green); background: var(--green-bg); }
+  .gate-card.fail { border-color: var(--red); background: var(--red-bg); }
+
+  .gate-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px; gap: 12px;
+  }
+  .gate-label {
+    font-weight: 700; font-size: 0.95rem; color: var(--primary);
+  }
+  .gate-question { font-size: 0.88rem; color: var(--gray-700); margin-bottom: 6px; }
+  .gate-evidence { font-size: 0.8rem; color: var(--gray-500); font-style: italic; margin-bottom: 12px; }
+  .gate-fail-note { font-size: 0.8rem; color: var(--red); font-weight: 500; margin-top: 8px; }
+
+  /* Toggle buttons */
+  .toggle-group { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 2px solid var(--gray-300); }
+  .toggle-btn {
+    padding: 8px 20px; border: none; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; background: white;
+    color: var(--gray-500); transition: all 0.2s;
+  }
+  .toggle-btn:first-child { border-right: 1px solid var(--gray-300); }
+  .toggle-btn.selected-pass { background: var(--green); color: white; }
+  .toggle-btn.selected-fail { background: var(--red); color: white; }
+
+  /* Score sliders */
+  .score-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px;
+    align-items: start; padding: 16px 0; border-bottom: 1px solid var(--gray-200);
+  }
+  .score-row:last-child { border-bottom: none; }
+  .score-factor-id { font-size: 0.75rem; color: var(--gray-500); font-weight: 600; }
+  .score-factor-name { font-weight: 600; font-size: 0.9rem; color: var(--primary); }
+  .score-factor-weight { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+  .score-factor-desc { font-size: 0.8rem; color: var(--gray-500); margin-top: 4px; }
+
+  .score-control { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 90px; }
+  .score-value {
+    font-size: 1.5rem; font-weight: 700; color: var(--primary);
+    width: 48px; text-align: center;
+  }
+  .score-slider {
+    width: 90px; accent-color: var(--primary-light);
+    cursor: pointer;
+  }
+  .score-labels { display: flex; justify-content: space-between; width: 90px; font-size: 0.65rem; color: var(--gray-500); }
+
+  /* Score summary bar */
+  .score-summary {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px; background: var(--gray-50); border-radius: var(--radius);
+    margin-top: 16px;
+  }
+  .score-bar-wrap { flex: 1; height: 12px; background: var(--gray-200); border-radius: 6px; overflow: hidden; }
+  .score-bar {
+    height: 100%; border-radius: 6px; transition: width 0.4s ease, background 0.3s;
+    min-width: 2px;
+  }
+  .score-bar.high { background: linear-gradient(90deg, var(--green), #43a047); }
+  .score-bar.low { background: linear-gradient(90deg, var(--amber), #ff8f00); }
+  .score-number { font-size: 1.8rem; font-weight: 800; min-width: 56px; text-align: right; }
+  .score-number.high { color: var(--green); }
+  .score-number.low { color: var(--amber); }
+  .score-threshold { font-size: 0.78rem; color: var(--gray-500); }
+
+  /* Matrix */
+  .matrix {
+    display: grid; grid-template-columns: auto 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr; gap: 0; margin: 20px 0;
+    border: 2px solid var(--gray-300); border-radius: var(--radius); overflow: hidden;
+  }
+  .matrix-corner { background: var(--gray-100); padding: 12px; }
+  .matrix-col-header {
+    background: var(--gray-100); padding: 12px; text-align: center;
+    font-weight: 700; font-size: 0.85rem; color: var(--primary);
+    border-bottom: 2px solid var(--gray-300);
+  }
+  .matrix-row-header {
+    background: var(--gray-100); padding: 12px; font-weight: 700;
+    font-size: 0.85rem; color: var(--primary); writing-mode: horizontal-tb;
+    display: flex; align-items: center; justify-content: center;
+    border-right: 2px solid var(--gray-300);
+  }
+  .matrix-cell {
+    padding: 20px; text-align: center; transition: all 0.4s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 110px;
+  }
+  .matrix-cell .cell-title { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+  .matrix-cell .cell-desc { font-size: 0.75rem; opacity: 0.8; }
+
+  .cell-build { background: #e8f5e9; color: var(--green); }
+  .cell-develop { background: #e3f2fd; color: #1565c0; }
+  .cell-opportunistic { background: #fff8e1; color: #e65100; }
+  .cell-park { background: #fce4ec; color: var(--red); }
+
+  .matrix-cell.highlighted { box-shadow: inset 0 0 0 4px var(--primary); transform: scale(1.02); z-index: 1; }
+  .matrix-dot {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--primary);
+    margin-top: 8px; box-shadow: 0 0 0 4px rgba(26,58,92,0.2);
+    display: none;
+  }
+  .matrix-cell.highlighted .matrix-dot { display: block; animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(26,58,92,0.2); }
+    50% { box-shadow: 0 0 0 8px rgba(26,58,92,0.1); }
+  }
+
+  /* Financial filter */
+  .fin-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px;
+    align-items: start; padding: 16px 0; border-bottom: 1px solid var(--gray-200);
+  }
+  .fin-row:last-child { border-bottom: none; }
+  .fin-label { font-weight: 600; font-size: 0.9rem; color: var(--primary); }
+  .fin-condition { font-size: 0.8rem; color: var(--gray-500); margin-top: 2px; }
+
+  .fin-toggle { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 2px solid var(--gray-300); }
+  .fin-btn {
+    padding: 6px 14px; border: none; cursor: pointer;
+    font-size: 0.78rem; font-weight: 600; background: white;
+    color: var(--gray-500); transition: all 0.2s;
+  }
+  .fin-btn.sel-green { background: var(--green); color: white; }
+  .fin-btn.sel-amber { background: var(--amber); color: white; }
+  .fin-btn.sel-red { background: var(--red); color: white; }
+
+  .fin-result {
+    text-align: center; padding: 24px; border-radius: var(--radius); margin-top: 20px;
+    font-size: 1.1rem; font-weight: 700;
+  }
+  .fin-result.green { background: var(--green-bg); color: var(--green); border: 2px solid var(--green); }
+  .fin-result.amber { background: var(--amber-bg); color: var(--amber); border: 2px solid var(--amber); }
+  .fin-result.red { background: var(--red-bg); color: var(--red); border: 2px solid var(--red); }
+
+  /* Pro forma scaffold */
+  .proforma-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .proforma-table th {
+    text-align: left; padding: 10px 12px; background: var(--primary);
+    color: white; font-weight: 600;
+  }
+  .proforma-table td { padding: 10px 12px; border-bottom: 1px solid var(--gray-200); }
+  .proforma-table tr:nth-child(even) { background: var(--gray-50); }
+  .proforma-table input, .proforma-table textarea {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--gray-300);
+    border-radius: 4px; font-family: inherit; font-size: 0.85rem;
+    resize: vertical;
+  }
+  .proforma-table textarea { min-height: 40px; }
+
+  /* Results panel */
+  .result-card {
+    border: 2px solid var(--primary); border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .result-header {
+    background: var(--primary); color: white; padding: 16px 24px;
+    font-weight: 700; font-size: 1.05rem;
+  }
+  .result-body { padding: 24px; }
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--gray-200);
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-label { font-size: 0.88rem; color: var(--gray-700); }
+  .result-value { font-weight: 700; font-size: 0.95rem; }
+
+  .placement-badge {
+    display: inline-block; padding: 6px 18px; border-radius: 20px;
+    font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;
+  }
+  .placement-badge.build { background: var(--green-bg); color: var(--green); border: 2px solid var(--green); }
+  .placement-badge.develop { background: #e3f2fd; color: #1565c0; border: 2px solid #1565c0; }
+  .placement-badge.opportunistic { background: var(--amber-bg); color: #e65100; border: 2px solid #e65100; }
+  .placement-badge.park { background: var(--red-bg); color: var(--red); border: 2px solid var(--red); }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 28px; border: none; border-radius: var(--radius);
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-primary:disabled { background: var(--gray-300); cursor: not-allowed; }
+  .btn-secondary { background: white; color: var(--primary); border: 2px solid var(--primary); }
+  .btn-secondary:hover { background: var(--gray-50); }
+  .btn-outline { background: none; color: var(--gray-500); border: 1px solid var(--gray-300); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+  .nav-buttons {
+    display: flex; justify-content: space-between; margin-top: 24px;
+    padding-top: 16px; border-top: 1px solid var(--gray-200);
+  }
+
+  /* Export buttons */
+  .export-bar {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin: 24px 0 8px; padding: 20px; background: var(--gray-50);
+    border-radius: var(--radius); border: 1px dashed var(--gray-300);
+  }
+  .export-bar .btn svg { width: 18px; height: 18px; vertical-align: middle; }
+
+  /* Print */
+  .btn-print { position: fixed; bottom: 20px; right: 20px; z-index: 200; box-shadow: var(--shadow-lg); border-radius: 50%; width: 48px; height: 48px; padding: 0; justify-content: center; }
+
+  @media print {
+    .stepper, .nav-buttons, .btn-print, .toggle-group, .toggle-btn,
+    .fin-toggle, .score-slider, .score-control { display: none !important; }
+    .section { display: block !important; page-break-inside: avoid; }
+    .header { padding: 16px; }
+    body { background: white; }
+    .container { max-width: 100%; }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.3rem; }
+    .step-btn { padding: 10px 10px; font-size: 0.75rem; }
+    .card { padding: 18px; }
+    .score-row { grid-template-columns: 1fr; }
+    .score-control { flex-direction: row; align-items: center; gap: 8px; }
+    .matrix { font-size: 0.8rem; }
+  }
+
+  /* Reset button */
+  .reset-bar {
+    text-align: center; padding: 16px; margin-top: 20px;
+  }
+
+  /* Blocked overlay */
+  .blocked-overlay {
+    position: relative;
+  }
+  .blocked-overlay::after {
+    content: 'Complete previous steps first';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.85); display: flex;
+    align-items: center; justify-content: center;
+    font-weight: 600; color: var(--gray-500); font-size: 1rem;
+    border-radius: var(--radius); z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SWIGB ENTERPRISES, LLP</h1>
+  <div class="subtitle">The SWIGB Project Decision Tree</div>
+  <div class="meta">A repeatable, evidence-based method for ranking any project &mdash; impact and execution first, money second.</div>
+  <div class="confidential">Tier 3 &middot; Internal Only</div>
+</div>
+
+<nav class="stepper" id="stepper">
+  <button class="step-btn active" onclick="goToStep(0)"><span class="step-num">1</span>Project</button>
+  <button class="step-btn" onclick="goToStep(1)"><span class="step-num">2</span>Gates</button>
+  <button class="step-btn" onclick="goToStep(2)"><span class="step-num">3</span>Impact</button>
+  <button class="step-btn" onclick="goToStep(3)"><span class="step-num">4</span>Execution</button>
+  <button class="step-btn" onclick="goToStep(4)"><span class="step-num">5</span>Matrix</button>
+  <button class="step-btn" onclick="goToStep(5)"><span class="step-num">6</span>Financial</button>
+  <button class="step-btn" onclick="goToStep(6)"><span class="step-num">7</span>Pro Forma</button>
+  <button class="step-btn" onclick="goToStep(7)"><span class="step-num">8</span>Results</button>
+</nav>
+
+<div class="container">
+
+  <!-- STEP 0: PROJECT NAME -->
+  <div class="section active" id="sec-0">
+    <div class="card">
+      <h2>Project Identification</h2>
+      <p>Name the project you are evaluating. This label will carry through every step of the decision tree.</p>
+      <input type="text" class="project-input" id="projectName" placeholder="Enter project name..." oninput="updateProjectName()">
+      <div class="callout" style="margin-top: 20px;">
+        <strong>The theory of change, in one breath:</strong> We gate every project against our non-negotiables, score it on impact and execution, and only then run the numbers. The result is a clean ranked pipeline where flagship projects are obvious, quick wins fund the mission, and nothing gets built that we would not be proud of long after we are gone.
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <div></div>
+      <button class="btn btn-primary" onclick="goToStep(1)" id="btn-start" disabled>Begin Evaluation &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 1: KNOCKOUT GATES -->
+  <div class="section" id="sec-1">
+    <div class="card">
+      <h2>Step 0 &mdash; The Four Knockout Gates</h2>
+      <p>Pass/fail. These encode the non-negotiables. A project that fails any gate is not scored &mdash; it is declined, parked, or restructured.</p>
+
+      <div class="gate-card" id="gateA">
+        <div class="gate-header">
+          <div>
+            <div class="gate-label">Gate A &mdash; Mission Fit</div>
+            <div class="gate-question">Does it pass the three gold-star rules?</div>
+            <div class="gate-evidence">Meaningful work, worth doing, and a benefit that outlasts us. Free of "silly work." A clear theory of change can be stated in three sentences.</div>
+          </div>
+          <div class="toggle-group">
+            <button class="toggle-btn" onclick="setGate('A', true, this)">PASS</button>
+            <button class="toggle-btn" onclick="setGate('A', false, this)">FAIL</button>
+          </div>
+        </div>
+        <div class="gate-fail-note" style="display:none;">If it fails: Decline. No score.</div>
+      </div>
+
+      <div class="gate-card" id="gateB">
+        <div class="gate-header">
+          <div>
+            <div class="gate-label">Gate B &mdash; Control Lock</div>
+            <div class="gate-question">Can SWIGB hold 51% managing, non-dilutable?</div>
+            <div class="gate-evidence">Structure permits SWIGB Enterprises 51% managing position with no dilution without written consent.</div>
+          </div>
+          <div class="toggle-group">
+            <button class="toggle-btn" onclick="setGate('B', true, this)">PASS</button>
+            <button class="toggle-btn" onclick="setGate('B', false, this)">FAIL</button>
+          </div>
+        </div>
+        <div class="gate-fail-note" style="display:none;">If it fails: Restructure, or decline.</div>
+      </div>
+
+      <div class="gate-card" id="gateC">
+        <div class="gate-header">
+          <div>
+            <div class="gate-label">Gate C &mdash; Capital Posture</div>
+            <div class="gate-question">Can we participate at or near $0 sponsor equity?</div>
+            <div class="gate-evidence">Returns come from fees, promote, IP, and post-flip ownership &mdash; not project equity at risk.</div>
+          </div>
+          <div class="toggle-group">
+            <button class="toggle-btn" onclick="setGate('C', true, this)">PASS</button>
+            <button class="toggle-btn" onclick="setGate('C', false, this)">FAIL</button>
+          </div>
+        </div>
+        <div class="gate-fail-note" style="display:none;">If it fails: Exception review by managing partner only.</div>
+      </div>
+
+      <div class="gate-card" id="gateD">
+        <div class="gate-header">
+          <div>
+            <div class="gate-label">Gate D &mdash; Disclosure Safety</div>
+            <div class="gate-question">Is the idea protected and the disclosure tier correct?</div>
+            <div class="gate-evidence">Core method is a registered trade secret and/or behind an executed MNDA; nothing above Tier 1 has been shared without one.</div>
+          </div>
+          <div class="toggle-group">
+            <button class="toggle-btn" onclick="setGate('D', true, this)">PASS</button>
+            <button class="toggle-btn" onclick="setGate('D', false, this)">FAIL</button>
+          </div>
+        </div>
+        <div class="gate-fail-note" style="display:none;">If it fails: Park until protected. No disclosure.</div>
+      </div>
+    </div>
+    <div id="gate-block-msg" style="display:none;" class="card" style="border-color:var(--red);">
+      <div style="text-align:center; padding: 12px; color: var(--red); font-weight: 600;">
+        One or more gates failed. The project cannot proceed to scoring. Address the failures or restructure.
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(0)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(2)" id="btn-gates" disabled>Continue to Impact Scoring &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: AXIS A - IMPACT -->
+  <div class="section" id="sec-2">
+    <div class="card">
+      <h2>Step 1 &mdash; Axis A: Likelihood of Impact</h2>
+      <p>How likely is a large, durable, real-world effect? Score each factor 0&ndash;5. A score of 60 or higher = <strong>High Impact</strong>.</p>
+
+      <div id="impact-factors"></div>
+
+      <div class="score-summary">
+        <div>
+          <div class="score-number" id="scoreA-num">0</div>
+          <div class="score-threshold">/ 100</div>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--gray-500); margin-bottom:4px;">
+            <span>Low Impact</span>
+            <span style="position:relative; left: -40%;">Threshold: 60</span>
+            <span>High Impact</span>
+          </div>
+          <div class="score-bar-wrap" style="position:relative;">
+            <div style="position:absolute; left:60%; top:-2px; bottom:-2px; width:2px; background:var(--gray-500); z-index:1;"></div>
+            <div class="score-bar" id="scoreA-bar" style="width:0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(1)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(3)">Continue to Execution Scoring &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: AXIS B - EXECUTION -->
+  <div class="section" id="sec-3">
+    <div class="card">
+      <h2>Step 2 &mdash; Axis B: Ease of Execution</h2>
+      <p>Not whether it <em>should</em> be done, but whether we can actually get it done with what we have today. Score each factor 0&ndash;5. A score of 60 or higher = <strong>High Ease</strong>.</p>
+
+      <div id="exec-factors"></div>
+
+      <div class="score-summary">
+        <div>
+          <div class="score-number" id="scoreB-num">0</div>
+          <div class="score-threshold">/ 100</div>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--gray-500); margin-bottom:4px;">
+            <span>Low Ease</span>
+            <span style="position:relative; left: -40%;">Threshold: 60</span>
+            <span>High Ease</span>
+          </div>
+          <div class="score-bar-wrap" style="position:relative;">
+            <div style="position:absolute; left:60%; top:-2px; bottom:-2px; width:2px; background:var(--gray-500); z-index:1;"></div>
+            <div class="score-bar" id="scoreB-bar" style="width:0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(4)">View Priority Matrix &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: MATRIX -->
+  <div class="section" id="sec-4">
+    <div class="card">
+      <h2>Step 3 &mdash; Priority Matrix</h2>
+      <p>Your two scores place the project in one of four quadrants.</p>
+
+      <div class="matrix" id="matrix">
+        <div class="matrix-corner"></div>
+        <div class="matrix-col-header">High Execution (&ge;60)</div>
+        <div class="matrix-col-header">Low Execution (&lt;60)</div>
+
+        <div class="matrix-row-header">High Impact (&ge;60)</div>
+        <div class="matrix-cell cell-build" id="cell-build">
+          <div class="cell-title">BUILD NOW</div>
+          <div class="cell-desc">Flagship. Resource it first.</div>
+          <div class="matrix-dot"></div>
+        </div>
+        <div class="matrix-cell cell-develop" id="cell-develop">
+          <div class="cell-title">DEVELOP</div>
+          <div class="cell-desc">Sequence the unlocks.</div>
+          <div class="matrix-dot"></div>
+        </div>
+
+        <div class="matrix-row-header">Low Impact (&lt;60)</div>
+        <div class="matrix-cell cell-opportunistic" id="cell-opportunistic">
+          <div class="cell-title">OPPORTUNISTIC</div>
+          <div class="cell-desc">Quick wins that fund the mission.</div>
+          <div class="matrix-dot"></div>
+        </div>
+        <div class="matrix-cell cell-park" id="cell-park">
+          <div class="cell-title">PARK / DECLINE</div>
+          <div class="cell-desc">Do not advance now.</div>
+          <div class="matrix-dot"></div>
+        </div>
+      </div>
+
+      <div id="matrix-result" class="callout" style="text-align:center; font-size: 1rem;"></div>
+
+      <div class="callout" style="margin-top:16px;">
+        <strong>Why impact and execution rank above money:</strong> A project that scores high on impact and execution but only middling on returns is still worth pursuing &mdash; we can usually restructure the money. Ranking on impact and execution first protects the mission from being quietly steered by a spreadsheet.
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(3)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(5)" id="btn-matrix">Continue to Financial Filter &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: FINANCIAL FILTER -->
+  <div class="section" id="sec-5">
+    <div class="card">
+      <h2>Step 4 &mdash; Secondary Financial Filter</h2>
+      <p>Now, and only now, the money. Each check returns Pass, Condition, or Fail. The overall result is the worst single outcome.</p>
+
+      <div id="fin-checks"></div>
+
+      <div id="fin-result" class="fin-result" style="display:none;"></div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(6)" id="btn-fin">Continue to Pro Forma &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: PRO FORMA SCAFFOLD -->
+  <div class="section" id="sec-6">
+    <div class="card">
+      <h2>Step 5 &mdash; Pro Forma Scaffold</h2>
+      <p>Green and amber projects hand these inputs to the standard SWIGB pro forma. Populate each field to generate a comparable financial model.</p>
+
+      <table class="proforma-table">
+        <thead><tr><th style="width:35%;">Pro Forma Input</th><th style="width:30%;">Typical Source</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Total installed / program cost</strong></td><td>EPC quote, supply agreement</td><td><input type="text" id="pf-cost" placeholder="e.g. $12.5M"></td></tr>
+          <tr><td><strong>Incentive stack</strong></td><td>Tax counsel, IRA program tables</td><td><input type="text" id="pf-incentive" placeholder="e.g. 30% ITC + bonus dep."></td></tr>
+          <tr><td><strong>Capital structure</strong></td><td>Tax-equity term sheet, lender</td><td><input type="text" id="pf-capital" placeholder="e.g. 60% TE, 35% debt, 5% bridge"></td></tr>
+          <tr><td><strong>Revenue streams</strong></td><td>Market data, contracts</td><td><textarea id="pf-revenue" placeholder="List each stream..."></textarea></td></tr>
+          <tr><td><strong>SWIGB fee schedule</strong></td><td>Standard SWIGB terms</td><td><input type="text" id="pf-fees" placeholder="e.g. 3% dev, 1% mgmt, 20% promote"></td></tr>
+          <tr><td><strong>Flip / hold timing</strong></td><td>ITC rules, partner agreement</td><td><input type="text" id="pf-timing" placeholder="e.g. Year 6 flip"></td></tr>
+          <tr><td><strong>DAIMA allocation</strong></td><td>Standard SWIGB commitment</td><td><input type="text" id="pf-daima" placeholder="10% of net profits"></td></tr>
+          <tr><td><strong>Headline outputs</strong></td><td>Calculated</td><td><textarea id="pf-outputs" placeholder="Partner IRR, SWIGB 25-yr economics..."></textarea></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
+      <button class="btn btn-primary" onclick="goToStep(7)">View Final Results &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: RESULTS -->
+  <div class="section" id="sec-7">
+    <div class="card">
+      <h2>Final Evaluation Summary</h2>
+      <div id="results-content"></div>
+    </div>
+    <div class="export-bar">
+      <button class="btn btn-primary" onclick="exportPDF()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+        Save as PDF
+      </button>
+      <button class="btn btn-secondary" onclick="exportCSV()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        Save as CSV
+      </button>
+    </div>
+    <div class="reset-bar">
+      <button class="btn btn-outline" onclick="resetAll()">Reset &amp; Evaluate Another Project</button>
+    </div>
+  </div>
+
+</div>
+
+<button class="btn btn-primary btn-print" onclick="window.print()" title="Print / Export PDF">&#128438;</button>
+
+<script>
+// ── DATA ──
+const impactFactors = [
+  { id:'A1', name:'Theory of change clarity', weight:0.10, desc:'Problem, mechanism, and end-state stated in three sentences with no jargon.' },
+  { id:'A2', name:'Mandate / urgency tailwind', weight:0.25, desc:'A documented external force pulls it forward now — regulatory mandate, reserve-margin crisis, or a closing federal funding window.' },
+  { id:'A3', name:'Scale of beneficiaries', weight:0.15, desc:'Large and countable: households served, MW delivered, communities reached.' },
+  { id:'A4', name:'Durability of benefit', weight:0.20, desc:'Effect persists for decades — long asset life, long contract, or permanent community infrastructure.' },
+  { id:'A5', name:'Replicability / platform multiplier', weight:0.20, desc:'Success creates a reusable template that multiplies across sites, utilities, or partners.' },
+  { id:'A6', name:'Community / DAIMA dividend', weight:0.10, desc:'Generates auditable community benefit and feeds the 10% community-equity commitment.' },
+];
+
+const execFactors = [
+  { id:'B1', name:'Relationship readiness', weight:0.20, desc:'The decision-level relationships already exist (named executive contacts, NDA in hand) — no cold start.' },
+  { id:'B2', name:'Path clearance', weight:0.20, desc:'Avoids the worst bottlenecks: no interconnection queue, brownfield or existing infrastructure, no novel permitting.' },
+  { id:'B3', name:'Input / supply security', weight:0.15, desc:'Key inputs are locked — supply agreement, partner commitment, or federal program confirmed live.' },
+  { id:'B4', name:'Template availability', weight:0.15, desc:'Reuses an existing SWIGB structure or blueprint rather than building net-new.' },
+  { id:'B5', name:'Capital pathway clarity', weight:0.15, desc:'A known funding mechanism is already mapped — tax equity, federal entitlement, PACE, or bridge.' },
+  { id:'B6', name:'Time to proof', weight:0.15, desc:'A milestone that de-risks the rest is reachable quickly (first cash, pilot, or signed term sheet).' },
+];
+
+const finChecks = [
+  { id:'F1', name:'Multi-revenue stack', condition:'Two or more independent revenue streams identified.', why:'Never single-threaded — protects against any one market rule change.' },
+  { id:'F2', name:'SWIGB economics intact', condition:'Dev fee + mgmt fee + promote + post-flip clear the internal threshold, with $0 equity preserved.', why:'Confirms we earn the strategic-integrator way.' },
+  { id:'F3', name:'Incentive capture', condition:'Federal/state stack quantified and audit-ready (ITC, bonus depreciation, IRA, PACE).', why:'The incentive arbitrage is often what makes the deal work.' },
+  { id:'F4', name:'Partner return adequacy', condition:'Structure clears the capital partner\'s hurdle (e.g. tax-equity IRR target; bridge return).', why:'If the money partner is not paid, there is no deal.' },
+  { id:'F5', name:'Downside floor', condition:'A contracted offtake or revenue floor exists.', why:'A floor is what makes a project financeable, not just attractive.' },
+  { id:'F6', name:'Capital recycling', condition:'Pre-flip cash flows or fees free capital for the next project.', why:'Turns one deal into a deployment engine.' },
+];
+
+// ── STATE ──
+let state = {
+  projectName: '',
+  gates: { A: null, B: null, C: null, D: null },
+  impact: [0,0,0,0,0,0],
+  exec: [0,0,0,0,0,0],
+  fin: [null,null,null,null,null,null], // 'pass','condition','fail'
+};
+
+// ── INIT ──
+function init() {
+  renderFactors('impact-factors', impactFactors, 'impact', 'A');
+  renderFactors('exec-factors', execFactors, 'exec', 'B');
+  renderFinChecks();
+}
+
+function renderFactors(containerId, factors, stateKey, axis) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = factors.map((f, i) => `
+    <div class="score-row">
+      <div>
+        <span class="score-factor-id">${f.id}</span>
+        <span class="score-factor-name">${f.name}</span>
+        <span class="score-factor-weight">(${Math.round(f.weight*100)}%)</span>
+        <div class="score-factor-desc">${f.desc}</div>
+      </div>
+      <div class="score-control">
+        <div class="score-value" id="${stateKey}-val-${i}">0</div>
+        <input type="range" min="0" max="5" value="0" class="score-slider"
+          oninput="setScore('${stateKey}', ${i}, this.value, '${axis}')">
+        <div class="score-labels"><span>0</span><span>5</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFinChecks() {
+  const c = document.getElementById('fin-checks');
+  c.innerHTML = finChecks.map((f, i) => `
+    <div class="fin-row">
+      <div>
+        <div class="fin-label">${f.id} — ${f.name}</div>
+        <div class="fin-condition">${f.condition}</div>
+      </div>
+      <div class="fin-toggle">
+        <button class="fin-btn" onclick="setFin(${i}, 'pass', this)">Pass</button>
+        <button class="fin-btn" onclick="setFin(${i}, 'condition', this)">Cond.</button>
+        <button class="fin-btn" onclick="setFin(${i}, 'fail', this)">Fail</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── ACTIONS ──
+function updateProjectName() {
+  state.projectName = document.getElementById('projectName').value.trim();
+  document.getElementById('btn-start').disabled = !state.projectName;
+}
+
+function setGate(gate, pass, btn) {
+  state.gates[gate] = pass;
+  const card = document.getElementById('gate' + gate);
+  const btns = btn.parentElement.querySelectorAll('.toggle-btn');
+  btns.forEach(b => b.classList.remove('selected-pass', 'selected-fail'));
+  btn.classList.add(pass ? 'selected-pass' : 'selected-fail');
+  card.className = 'gate-card ' + (pass ? 'pass' : 'fail');
+  card.querySelector('.gate-fail-note').style.display = pass ? 'none' : 'block';
+  checkGates();
+}
+
+function checkGates() {
+  const vals = Object.values(state.gates);
+  const allSet = vals.every(v => v !== null);
+  const allPass = vals.every(v => v === true);
+  document.getElementById('btn-gates').disabled = !allSet || !allPass;
+  document.getElementById('gate-block-msg').style.display = (allSet && !allPass) ? 'block' : 'none';
+  updateStepStatus(1, allSet ? (allPass ? 'completed' : 'failed') : '');
+}
+
+function setScore(key, idx, val, axis) {
+  val = parseInt(val);
+  state[key][idx] = val;
+  document.getElementById(key + '-val-' + idx).textContent = val;
+  recalcScore(key, axis);
+}
+
+function recalcScore(key, axis) {
+  const factors = key === 'impact' ? impactFactors : execFactors;
+  let score = 0;
+  factors.forEach((f, i) => { score += f.weight * (state[key][i] / 5); });
+  score = Math.round(score * 100);
+
+  const numEl = document.getElementById('score' + axis + '-num');
+  const barEl = document.getElementById('score' + axis + '-bar');
+  numEl.textContent = score;
+  numEl.className = 'score-number ' + (score >= 60 ? 'high' : 'low');
+  barEl.style.width = score + '%';
+  barEl.className = 'score-bar ' + (score >= 60 ? 'high' : 'low');
+
+  if (key === 'impact') updateStepStatus(2, 'completed');
+  else updateStepStatus(3, 'completed');
+}
+
+function setFin(idx, val, btn) {
+  state.fin[idx] = val;
+  const btns = btn.parentElement.querySelectorAll('.fin-btn');
+  btns.forEach(b => b.classList.remove('sel-green', 'sel-amber', 'sel-red'));
+  btn.classList.add(val === 'pass' ? 'sel-green' : val === 'condition' ? 'sel-amber' : 'sel-red');
+  recalcFin();
+}
+
+function recalcFin() {
+  const vals = state.fin.filter(v => v !== null);
+  if (vals.length < 6) { document.getElementById('fin-result').style.display = 'none'; return; }
+
+  let result = 'green';
+  if (vals.includes('condition')) result = 'amber';
+  if (vals.includes('fail')) result = 'red';
+
+  const el = document.getElementById('fin-result');
+  el.style.display = 'block';
+  const msgs = {
+    green: 'GREEN — All checks pass. Proceed to pro forma.',
+    amber: 'AMBER — Proceed, but restructure the flagged terms first.',
+    red: 'RED — Return to the Develop queue or decline. Not ready to fund yet.',
+  };
+  el.textContent = msgs[result];
+  el.className = 'fin-result ' + result;
+  updateStepStatus(5, 'completed');
+}
+
+function getScoreA() {
+  let s = 0; impactFactors.forEach((f,i) => { s += f.weight * (state.impact[i]/5); });
+  return Math.round(s * 100);
+}
+function getScoreB() {
+  let s = 0; execFactors.forEach((f,i) => { s += f.weight * (state.exec[i]/5); });
+  return Math.round(s * 100);
+}
+
+function getPlacement() {
+  const a = getScoreA(), b = getScoreB();
+  const hi = a >= 60, he = b >= 60;
+  if (hi && he) return { key:'build', label:'BUILD NOW', desc:'Flagship. Resource it first. This is where the platform proves and replicates itself.', class:'build' };
+  if (hi && !he) return { key:'develop', label:'DEVELOP', desc:'Worth the effort, but sequence the unlocks. Identify the one or two execution barriers and assign owners.', class:'develop' };
+  if (!hi && he) return { key:'opportunistic', label:'OPPORTUNISTIC', desc:'Quick wins and aggregation plays. Low strategic weight, but easy cash that funds the mission.', class:'opportunistic' };
+  return { key:'park', label:'PARK / DECLINE', desc:'Do not advance now. Park with a note on what would have to change, or decline.', class:'park' };
+}
+
+function getFinResult() {
+  const vals = state.fin.filter(v => v !== null);
+  if (vals.length < 6) return null;
+  if (vals.includes('fail')) return 'red';
+  if (vals.includes('condition')) return 'amber';
+  return 'green';
+}
+
+// ── NAVIGATION ──
+let currentStep = 0;
+
+function goToStep(n) {
+  // Validate forward movement
+  if (n > 0 && !state.projectName) return;
+  if (n > 1 && !Object.values(state.gates).every(v => v === true)) return;
+
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + n).classList.add('active');
+
+  document.querySelectorAll('.step-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === n);
+  });
+
+  currentStep = n;
+
+  // Update matrix when entering step 4
+  if (n === 4) updateMatrix();
+  // Build results when entering step 7
+  if (n === 7) buildResults();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateStepStatus(stepIdx, status) {
+  const btn = document.querySelectorAll('.step-btn')[stepIdx];
+  btn.classList.remove('completed', 'failed');
+  if (status) btn.classList.add(status);
+}
+
+function updateMatrix() {
+  ['cell-build','cell-develop','cell-opportunistic','cell-park'].forEach(id => {
+    document.getElementById(id).classList.remove('highlighted');
+  });
+  const p = getPlacement();
+  document.getElementById('cell-' + p.key).classList.add('highlighted');
+  document.getElementById('matrix-result').innerHTML =
+    `<strong>${state.projectName}</strong> &rarr; <span class="placement-badge ${p.class}">${p.label}</span>
+    <div style="margin-top:8px; font-size:0.88rem; color:var(--gray-700);">${p.desc}</div>
+    <div style="margin-top:8px; font-size:0.85rem; color:var(--gray-500);">Impact: ${getScoreA()}/100 &middot; Execution: ${getScoreB()}/100</div>`;
+  updateStepStatus(4, 'completed');
+}
+
+function buildResults() {
+  const a = getScoreA(), b = getScoreB();
+  const p = getPlacement();
+  const fr = getFinResult();
+  const finLabel = fr === 'green' ? 'GREEN — Proceed to pro forma' :
+                   fr === 'amber' ? 'AMBER — Restructure flagged terms' :
+                   fr === 'red' ? 'RED — Not ready to fund' : 'Not yet evaluated';
+  const finColor = fr === 'green' ? 'var(--green)' : fr === 'amber' ? 'var(--amber)' : fr === 'red' ? 'var(--red)' : 'var(--gray-500)';
+
+  const gateRows = ['A','B','C','D'].map(g =>
+    `<div class="result-row"><span class="result-label">Gate ${g}</span>
+     <span class="result-value" style="color:${state.gates[g] ? 'var(--green)' : 'var(--red)'};">${state.gates[g] ? 'PASS' : 'FAIL'}</span></div>`
+  ).join('');
+
+  const impactDetail = impactFactors.map((f,i) =>
+    `<div class="result-row"><span class="result-label" style="font-size:0.82rem;">${f.id} ${f.name} (${Math.round(f.weight*100)}%)</span>
+     <span class="result-value" style="font-size:0.85rem;">${state.impact[i]}/5</span></div>`
+  ).join('');
+
+  const execDetail = execFactors.map((f,i) =>
+    `<div class="result-row"><span class="result-label" style="font-size:0.82rem;">${f.id} ${f.name} (${Math.round(f.weight*100)}%)</span>
+     <span class="result-value" style="font-size:0.85rem;">${state.exec[i]}/5</span></div>`
+  ).join('');
+
+  const finDetail = finChecks.map((f,i) => {
+    const v = state.fin[i];
+    const color = v === 'pass' ? 'var(--green)' : v === 'condition' ? 'var(--amber)' : v === 'fail' ? 'var(--red)' : 'var(--gray-500)';
+    const label = v ? v.charAt(0).toUpperCase() + v.slice(1) : '—';
+    return `<div class="result-row"><span class="result-label" style="font-size:0.82rem;">${f.id} ${f.name}</span>
+     <span class="result-value" style="font-size:0.85rem; color:${color};">${label}</span></div>`;
+  }).join('');
+
+  document.getElementById('results-content').innerHTML = `
+    <div class="result-card">
+      <div class="result-header">${state.projectName}</div>
+      <div class="result-body">
+        <div class="result-row">
+          <span class="result-label">Priority Placement</span>
+          <span class="placement-badge ${p.class}">${p.label}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Impact Score (Axis A)</span>
+          <span class="result-value" style="color:${a >= 60 ? 'var(--green)' : 'var(--amber)'};">${a} / 100 ${a >= 60 ? '(High)' : '(Low)'}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Execution Score (Axis B)</span>
+          <span class="result-value" style="color:${b >= 60 ? 'var(--green)' : 'var(--amber)'};">${b} / 100 ${b >= 60 ? '(High)' : '(Low)'}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Financial Filter</span>
+          <span class="result-value" style="color:${finColor};">${finLabel}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="box-shadow:none; border:1px solid var(--gray-200);">
+      <h3 style="margin-top:0;">Knockout Gates</h3>
+      ${gateRows}
+    </div>
+
+    <div class="card" style="box-shadow:none; border:1px solid var(--gray-200); margin-top:12px;">
+      <h3 style="margin-top:0;">Impact Breakdown — Score: ${a}</h3>
+      ${impactDetail}
+    </div>
+
+    <div class="card" style="box-shadow:none; border:1px solid var(--gray-200); margin-top:12px;">
+      <h3 style="margin-top:0;">Execution Breakdown — Score: ${b}</h3>
+      ${execDetail}
+    </div>
+
+    <div class="card" style="box-shadow:none; border:1px solid var(--gray-200); margin-top:12px;">
+      <h3 style="margin-top:0;">Financial Filter Detail</h3>
+      ${finDetail}
+    </div>
+
+    <div style="text-align:center; margin-top:24px;">
+      <p style="font-size:0.88rem; color:var(--gray-700); margin-bottom:12px;">${p.desc}</p>
+      <div style="font-size:0.75rem; color:var(--gray-500);">SWIGB Enterprises, LLP &copy; 2026 &middot; Tier 3 Internal Only</div>
+    </div>
+  `;
+
+  updateStepStatus(7, 'completed');
+}
+
+function resetAll() {
+  state = { projectName: '', gates: {A:null,B:null,C:null,D:null}, impact:[0,0,0,0,0,0], exec:[0,0,0,0,0,0], fin:[null,null,null,null,null,null] };
+  document.getElementById('projectName').value = '';
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-gates').disabled = true;
+  document.getElementById('gate-block-msg').style.display = 'none';
+  document.getElementById('fin-result').style.display = 'none';
+
+  document.querySelectorAll('.gate-card').forEach(c => c.className = 'gate-card');
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected-pass','selected-fail'));
+  document.querySelectorAll('.gate-fail-note').forEach(n => n.style.display = 'none');
+  document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('completed','failed'));
+
+  // Re-render score sections
+  renderFactors('impact-factors', impactFactors, 'impact', 'A');
+  renderFactors('exec-factors', execFactors, 'exec', 'B');
+  renderFinChecks();
+
+  ['scoreA-num','scoreB-num'].forEach(id => { const el = document.getElementById(id); el.textContent = '0'; el.className = 'score-number'; });
+  ['scoreA-bar','scoreB-bar'].forEach(id => { const el = document.getElementById(id); el.style.width = '0%'; el.className = 'score-bar'; });
+
+  // Clear pro forma
+  ['pf-cost','pf-incentive','pf-capital','pf-revenue','pf-fees','pf-timing','pf-daima','pf-outputs'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+
+  goToStep(0);
+}
+
+// ── EXPORT: CSV ──
+function exportCSV() {
+  const a = getScoreA(), b = getScoreB();
+  const p = getPlacement();
+  const fr = getFinResult();
+  const date = new Date().toISOString().slice(0,10);
+
+  const rows = [
+    ['SWIGB Project Decision Tree — Evaluation Export'],
+    ['Project', state.projectName],
+    ['Date', date],
+    [''],
+    ['KNOCKOUT GATES'],
+    ['Gate', 'Result'],
+    ['A — Mission Fit', state.gates.A ? 'PASS' : 'FAIL'],
+    ['B — Control Lock', state.gates.B ? 'PASS' : 'FAIL'],
+    ['C — Capital Posture', state.gates.C ? 'PASS' : 'FAIL'],
+    ['D — Disclosure Safety', state.gates.D ? 'PASS' : 'FAIL'],
+    [''],
+    ['AXIS A — LIKELIHOOD OF IMPACT'],
+    ['Factor', 'Weight', 'Score (0-5)', 'Weighted'],
+  ];
+  impactFactors.forEach((f,i) => {
+    rows.push([f.id + ' ' + f.name, Math.round(f.weight*100)+'%', state.impact[i], (f.weight * state.impact[i] / 5 * 100).toFixed(1)]);
+  });
+  rows.push(['Axis A Total', '', '', a]);
+  rows.push(['Axis A Rating', '', '', a >= 60 ? 'HIGH' : 'LOW']);
+  rows.push(['']);
+  rows.push(['AXIS B — EASE OF EXECUTION']);
+  rows.push(['Factor', 'Weight', 'Score (0-5)', 'Weighted']);
+  execFactors.forEach((f,i) => {
+    rows.push([f.id + ' ' + f.name, Math.round(f.weight*100)+'%', state.exec[i], (f.weight * state.exec[i] / 5 * 100).toFixed(1)]);
+  });
+  rows.push(['Axis B Total', '', '', b]);
+  rows.push(['Axis B Rating', '', '', b >= 60 ? 'HIGH' : 'LOW']);
+  rows.push(['']);
+  rows.push(['PRIORITY MATRIX']);
+  rows.push(['Placement', p.label]);
+  rows.push(['']);
+  rows.push(['FINANCIAL FILTER']);
+  rows.push(['Check', 'Result']);
+  finChecks.forEach((f,i) => {
+    rows.push([f.id + ' ' + f.name, state.fin[i] ? state.fin[i].toUpperCase() : 'N/A']);
+  });
+  rows.push(['Overall Financial', fr ? fr.toUpperCase() : 'N/A']);
+  rows.push(['']);
+  rows.push(['PRO FORMA INPUTS']);
+  const pfFields = [
+    ['Total installed / program cost', 'pf-cost'],
+    ['Incentive stack', 'pf-incentive'],
+    ['Capital structure', 'pf-capital'],
+    ['Revenue streams', 'pf-revenue'],
+    ['SWIGB fee schedule', 'pf-fees'],
+    ['Flip / hold timing', 'pf-timing'],
+    ['DAIMA allocation', 'pf-daima'],
+    ['Headline outputs', 'pf-outputs'],
+  ];
+  pfFields.forEach(([label, id]) => {
+    const el = document.getElementById(id);
+    rows.push([label, el ? el.value.replace(/\n/g, ' ') : '']);
+  });
+
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = state.projectName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') + '_Decision_Tree_' + date + '.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── EXPORT: PDF ──
+function exportPDF() {
+  const btn = event.target.closest('button');
+  const origText = btn.innerHTML;
+  btn.innerHTML = 'Generating PDF...';
+  btn.disabled = true;
+
+  const el = document.getElementById('results-content');
+  const date = new Date().toISOString().slice(0,10);
+  const filename = state.projectName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') + '_Decision_Tree_' + date + '.pdf';
+
+  const opt = {
+    margin: [0.5, 0.6, 0.5, 0.6],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  html2pdf().set(opt).from(el).save().then(() => {
+    btn.innerHTML = origText;
+    btn.disabled = false;
+  }).catch(() => {
+    btn.innerHTML = origText;
+    btn.disabled = false;
+    // Fallback to print
+    window.print();
+  });
+}
+
+init();
+</script>
+</body>
+</html>
